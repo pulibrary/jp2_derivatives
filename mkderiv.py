@@ -24,8 +24,8 @@ KDU_RECIPE = "\
 -no_weights \
 -quiet"
 
-LIB=os.getcwd() + "/lib"
-ENV={"LD_LIBRARY_PATH":LIB, "PATH":LIB+":$PATH"}
+LIB = os.getcwd() + "/lib"
+ENV = {"LD_LIBRARY_PATH":LIB, "PATH":LIB + ":$PATH"}
 
 
 ## Logging
@@ -57,8 +57,10 @@ class DerivativeMaker(object):
         def _tiffFilter(file_name):
             return file_name.endswith(".tif") and not file_name.startswith(".")
         
+        
+        
         @staticmethod
-        def _changeExtenstion(oldPath, newExtenstion):
+        def _changeExtension(oldPath, newExtenstion):
             """
             Given a path with an image at the end (e.g., foo/bar/00000007.tif)
             and a new extension (e.g. ".jpg") returns the path with the new 
@@ -68,8 +70,8 @@ class DerivativeMaker(object):
             return oldPath[0:lastStop] + newExtenstion
 
         
-        def buildFileList(self, dir=""):
-            if dir == "": dir = self.__srcRoot
+        def buildFileList(self, dir=None):
+            if dir == None: dir = self.__srcRoot
             
             for node in os.listdir(dir):
                 absPath = os.path.join(dir, node)
@@ -87,7 +89,7 @@ class DerivativeMaker(object):
                 outTmpTiffPath = tiffPath.replace(SOURCE_ROOT, TMP_DIR)
                 
                 outJp2WrongExt = outTmpTiffPath.replace(TMP_DIR, TARGET_ROOT)
-                outJp2Path = DerivativeMaker._changeExtenstion(outJp2WrongExt, ".jp2")
+                outJp2Path = DerivativeMaker._changeExtension(outJp2WrongExt, ".jp2")
                 
                 if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
                     DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath)
@@ -98,12 +100,15 @@ class DerivativeMaker(object):
                     logging.warn("File exists: " + outJp2Path)
                 
         @staticmethod
-        def _makeTmpTiff(inputPath, outPutPath):
+        def _makeTmpTiff(inputPath, outputPath):
             '''
             Returns the path to the TIFF that was created.
             '''
+            #TODO: untested
+            newDirPath = os.path.dirname(outputPath)
+            if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
-            cmd = "convert " + inputPath + " " + IMAGEMAGICK_OPTS + " " + outPutPath
+            cmd = "convert " + inputPath + " " + IMAGEMAGICK_OPTS + " " + outputPath
             proc = subprocess.Popen(cmd, shell=True, \
                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             return_code = proc.wait()
@@ -114,15 +119,20 @@ class DerivativeMaker(object):
             for line in proc.stderr:
                 logging.error(line.rstrip())
             
-            logging.info("Created temporary file: " + outPutPath)
+            logging.info("Created temporary file: " + outputPath)
             
-            return outPutPath
+            return outputPath
                 
         @staticmethod
         def _makeJp2(inputPath, outputPath):
             '''
             Returns the path to the TIFF that was created.
             '''
+            #TODO: untested
+            newDirPath = os.path.dirname(outputPath)
+            if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
+            
+            
             cmd = "kdu_compress -i " + inputPath + " -o " + outputPath + " " + KDU_RECIPE
             
             proc = subprocess.Popen(cmd, shell=True, env=ENV, \
