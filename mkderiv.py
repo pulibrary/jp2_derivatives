@@ -14,7 +14,7 @@ import subprocess
 # important: do not include a leading slash in this property, e.g.
 PUDL_LOCATOR = ""  
 OVERWRITE_EXISTING = False
-TMP_DIR = "/home/jstroop/workspace/img-deriv-maker/tmp"
+TMP_DIR = "/tmp"
 SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test-images"
 TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/out"
 IMAGEMAGICK_OPTS = "-colorspace sRGB -quality 100 -resize 50%"
@@ -48,6 +48,7 @@ class DerivativeMaker(object):
             self.__srcRoot = os.path.join(SOURCE_ROOT, PUDL_LOCATOR)
             self.__targetRoot = os.path.join(TARGET_ROOT, PUDL_LOCATOR)
             self.__files = []
+            if PUDL_LOCATOR.startswith("/"): PUDL_LOCATOR = PUDL_LOCATOR[1:]
         
         @staticmethod
         def _dirFilter(dir_name):
@@ -86,9 +87,9 @@ class DerivativeMaker(object):
         def makeDerivs(self):
             for tiffPath in self.__files:
                 
-                outTmpTiffPath = tiffPath.replace(SOURCE_ROOT, TMP_DIR)
+                outTmpTiffPath = TMP_DIR + tiffPath[len(SOURCE_ROOT):]
                 
-                outJp2WrongExt = outTmpTiffPath.replace(TMP_DIR, TARGET_ROOT)
+                outJp2WrongExt = TARGET_ROOT + outTmpTiffPath[len(TMP_DIR):]
                 outJp2Path = DerivativeMaker._changeExtension(outJp2WrongExt, ".jp2")
                 
                 if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
@@ -100,15 +101,15 @@ class DerivativeMaker(object):
                     logging.warn("File exists: " + outJp2Path)
                 
         @staticmethod
-        def _makeTmpTiff(inputPath, outputPath):
+        def _makeTmpTiff(inPath, outPath):
             '''
             Returns the path to the TIFF that was created.
             '''
             #TODO: untested
-            newDirPath = os.path.dirname(outputPath)
+            newDirPath = os.path.dirname(outPath)
             if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
-            cmd = "convert " + inputPath + " " + IMAGEMAGICK_OPTS + " " + outputPath
+            cmd = "convert " + inPath + " " + IMAGEMAGICK_OPTS + " " + outPath
             proc = subprocess.Popen(cmd, shell=True, \
                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             return_code = proc.wait()
@@ -118,22 +119,27 @@ class DerivativeMaker(object):
                 logging.info(line.rstrip())
             for line in proc.stderr:
                 logging.error(line.rstrip())
+                                
+            if os.path.exists(outPath):
+                logging.info("Created temporary file: " + outPath)
+                return True
+            else:
+                logging.warn("Failed to create temporary file: " + outPath)
+                return False
             
-            logging.info("Created temporary file: " + outputPath)
             
-            return outputPath
                 
         @staticmethod
-        def _makeJp2(inputPath, outputPath):
+        def _makeJp2(inPath, outPath):
             '''
             Returns the path to the TIFF that was created.
             '''
             #TODO: untested
-            newDirPath = os.path.dirname(outputPath)
+            newDirPath = os.path.dirname(outPath)
             if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
             
-            cmd = "kdu_compress -i " + inputPath + " -o " + outputPath + " " + KDU_RECIPE
+            cmd = "kdu_compress -i " + inPath + " -o " + outPath + " " + KDU_RECIPE
             
             proc = subprocess.Popen(cmd, shell=True, env=ENV, \
                     stderr=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -144,9 +150,14 @@ class DerivativeMaker(object):
                 logging.info(line.rstrip())
             for line in proc.stderr:
                 logging.error(line.rstrip())
-            
-            logging.info("Created " + outputPath)
-            return outputPath
+                
+            if os.path.exists(outPath):
+                logging.info("Created: " + outPath)
+                os.chmod(outPath, 0644)
+                return True
+            else:
+                logging.warn("Failed to create: " + outPath)
+                return False
 
         
 if __name__ == "__main__":
