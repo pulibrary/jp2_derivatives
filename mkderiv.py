@@ -10,13 +10,26 @@ import os
 import logging
 import subprocess
 
-## Config
-# important: do not include a leading slash in this property, e.g.
-PUDL_LOCATOR = ""  
+## Configuration - Set these ##################################################
+
+# Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
+# DO NOT include a leading slash, e.g., "/pudl0001".
+PUDL_LOCATOR = "pudl0002"
+
+# True if we want to replace existing files, otherwise False
 OVERWRITE_EXISTING = False
+
+# Location for temporary half-size TIFFs, required for setting color profile.
 TMP_DIR = "/tmp"
+
+# Location of source images. "pudlXXXX" directories should be directly inside.
 SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test-images"
+
+# Location of target images. "pudlXXXX" directories and subdirectories will be
+# created.  
 TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/out"
+
+# Recipes for Image Magick and Kakadu.
 IMAGEMAGICK_OPTS = "-colorspace sRGB -quality 100 -resize 50%"
 KDU_RECIPE = "\
 -rate 1.71 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} \
@@ -24,9 +37,11 @@ KDU_RECIPE = "\
 -no_weights \
 -quiet"
 
+################################################################################
+# Code. Leave this alone :).
+
 LIB = os.getcwd() + "/lib"
 ENV = {"LD_LIBRARY_PATH":LIB, "PATH":LIB + ":$PATH"}
-
 
 ## Logging
 # INFO goes to stdout (default handler)
@@ -45,10 +60,8 @@ logging.getLogger("").addHandler(err)
 
 class DerivativeMaker(object):
         def __init__(self):
-            self.__srcRoot = os.path.join(SOURCE_ROOT, PUDL_LOCATOR)
-            self.__targetRoot = os.path.join(TARGET_ROOT, PUDL_LOCATOR)
             self.__files = []
-            if PUDL_LOCATOR.startswith("/"): PUDL_LOCATOR = PUDL_LOCATOR[1:]
+            
         
         @staticmethod
         def _dirFilter(dir_name):
@@ -57,8 +70,6 @@ class DerivativeMaker(object):
         @staticmethod
         def _tiffFilter(file_name):
             return file_name.endswith(".tif") and not file_name.startswith(".")
-        
-        
         
         @staticmethod
         def _changeExtension(oldPath, newExtenstion):
@@ -69,10 +80,10 @@ class DerivativeMaker(object):
             """
             lastStop = oldPath.rfind(".")
             return oldPath[0:lastStop] + newExtenstion
-
         
         def buildFileList(self, dir=None):
-            if dir == None: dir = self.__srcRoot
+            if dir == None: 
+                dir = os.path.join(SOURCE_ROOT, PUDL_LOCATOR)
             
             for node in os.listdir(dir):
                 absPath = os.path.join(dir, node)
@@ -93,10 +104,11 @@ class DerivativeMaker(object):
                 outJp2Path = DerivativeMaker._changeExtension(outJp2WrongExt, ".jp2")
                 
                 if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
-                    DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath)
-                    DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path)
-                    os.remove(outTmpTiffPath)
-                    logging.info("Removed temporary file: " + outTmpTiffPath)
+                    tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath)
+                    if tiffSuccess:
+                        DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path)
+                        os.remove(outTmpTiffPath)
+                        logging.info("Removed temporary file: " + outTmpTiffPath)
                 else:
                     logging.warn("File exists: " + outJp2Path)
                 
