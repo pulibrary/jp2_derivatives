@@ -32,7 +32,7 @@ TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/out"
 # Recipes for Image Magick and Kakadu.
 IMAGEMAGICK_OPTS = "-colorspace sRGB -quality 100 -resize 50%"
 KDU_RECIPE = "\
--rate 1.71 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} \
+-rate 1.71 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
 -jp2_space sRGB \
 -no_weights \
 -quiet"
@@ -49,7 +49,7 @@ log.setLevel(logging.DEBUG)
 
 
 format = '%(asctime)s %(levelname)-5s: %(message)s'
-dateFormat = '%d-%b-%YT%H:%M:%S'
+dateFormat = '%Y-%m-%dT%H:%M:%S'
 formatter = logging.Formatter(format, dateFormat)
 
 now = datetime.now()
