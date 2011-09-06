@@ -9,26 +9,26 @@ file system (i.e., source TIFFs).
 import os
 import logging
 import subprocess
-
-## Configuration - Set these ##################################################
-
+from datetime import datetime
+## Configuration - Set these ###################################################
+#
 # Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
 # DO NOT include a leading slash, e.g., "/pudl0001".
-PUDL_LOCATOR = "pudl0002"
-
+PUDL_LOCATOR = "pudl0001"
+#
 # True if we want to replace existing files, otherwise False
 OVERWRITE_EXISTING = False
-
+#
 # Location for temporary half-size TIFFs, required for setting color profile.
 TMP_DIR = "/tmp"
-
+#
 # Location of source images. "pudlXXXX" directories should be directly inside.
-SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test-images"
-
+SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/test-images"
+#
 # Location of target images. "pudlXXXX" directories and subdirectories will be
 # created.  
-TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/out"
-
+TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/out"
+#
 # Recipes for Image Magick and Kakadu.
 IMAGEMAGICK_OPTS = "-colorspace sRGB -quality 100 -resize 50%"
 KDU_RECIPE = "\
@@ -38,30 +38,43 @@ KDU_RECIPE = "\
 -quiet"
 
 ################################################################################
-# Code. Leave this alone :).
+# Code. Leave this alone :).                                                   #
 
 LIB = os.getcwd() + "/lib"
 ENV = {"LD_LIBRARY_PATH":LIB, "PATH":LIB + ":$PATH"}
 
-## Logging
-# INFO goes to stdout (default handler)
-format = '%(asctime)s %(levelname)-5s: %(message)s'
-dateFormat = '%a, %d %b %Y %H:%M:%S'
-logging.basicConfig(level=logging.INFO,
-                    format=format,
-                    datefmt=dateFormat,
-                    stream=os.sys.stdout)
+# Logging
+log = logging.getLogger("DerivativeMaker")
+log.setLevel(logging.DEBUG)
 
-# ERRORs go to stderr
-err = logging.StreamHandler(os.sys.stderr)
+
+format = '%(asctime)s %(levelname)-5s: %(message)s'
+dateFormat = '%d-%b-%YT%H:%M:%S'
+formatter = logging.Formatter(format, dateFormat)
+
+now = datetime.now()
+logdir = "logs/" + now.strftime("%Y/%m/%d/")
+if not os.path.exists(logdir): os.makedirs(logdir)
+
+time = now.strftime("%H:%M:%S")
+
+# OUT
+outFilePath = logdir + time + "-out.log"
+out = logging.FileHandler(outFilePath)
+out.setLevel(logging.INFO)
+out.setFormatter(formatter)
+log.addHandler(out)
+
+# ERR
+errFilePath = logdir + time + "-err.log"
+err = logging.FileHandler(errFilePath)
 err.setLevel(logging.ERROR)
-err.setFormatter(logging.Formatter(format, dateFormat))
-logging.getLogger("").addHandler(err)
+err.setFormatter(formatter)
+log.addHandler(err)
 
 class DerivativeMaker(object):
         def __init__(self):
             self.__files = []
-            
         
         @staticmethod
         def _dirFilter(dir_name):
@@ -94,24 +107,24 @@ class DerivativeMaker(object):
                     self.__files.append(absPath)
                 else:
                     pass
-        
+                        
         def makeDerivs(self):
             for tiffPath in self.__files:
                 
                 outTmpTiffPath = TMP_DIR + tiffPath[len(SOURCE_ROOT):]
-                
+
                 outJp2WrongExt = TARGET_ROOT + outTmpTiffPath[len(TMP_DIR):]
                 outJp2Path = DerivativeMaker._changeExtension(outJp2WrongExt, ".jp2")
-                
+
                 if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
                     tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath)
                     if tiffSuccess:
                         DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path)
                         os.remove(outTmpTiffPath)
-                        logging.info("Removed temporary file: " + outTmpTiffPath)
+                        log.debug("Removed temporary file: " + outTmpTiffPath)
                 else:
-                    logging.warn("File exists: " + outJp2Path)
-                
+                    log.warn("File exists: " + outJp2Path)
+
         @staticmethod
         def _makeTmpTiff(inPath, outPath):
             '''
@@ -128,19 +141,21 @@ class DerivativeMaker(object):
             
             # Read from pipes
             for line in proc.stdout:
-                logging.info(line.rstrip())
+                log.info(line.rstrip())
+            c = 0
             for line in proc.stderr:
-                logging.error(line.rstrip())
+                if c == 0: log.error(outPath) 
+                log.error(line.rstrip())
+                c+=1
                                 
-            if os.path.exists(outPath):
-                logging.info("Created temporary file: " + outPath)
+            if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
+                log.debug("Created temporary file: " + outPath)
                 return True
             else:
-                logging.warn("Failed to create temporary file: " + outPath)
+                if os.path.exists(outPath): os.remove(outPath)
+                log.error("Failed to create temporary file: " + outPath)
                 return False
-            
-            
-                
+
         @staticmethod
         def _makeJp2(inPath, outPath):
             '''
@@ -150,7 +165,6 @@ class DerivativeMaker(object):
             newDirPath = os.path.dirname(outPath)
             if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
-            
             cmd = "kdu_compress -i " + inPath + " -o " + outPath + " " + KDU_RECIPE
             
             proc = subprocess.Popen(cmd, shell=True, env=ENV, \
@@ -159,21 +173,32 @@ class DerivativeMaker(object):
             
             # Read from pipes
             for line in proc.stdout:
-                logging.info(line.rstrip())
-            for line in proc.stderr:
-                logging.error(line.rstrip())
+                log.info(line.rstrip())
                 
-            if os.path.exists(outPath):
-                logging.info("Created: " + outPath)
+            c = 0
+            for line in proc.stderr:
+                if c == 0: log.error(outPath) 
+                log.error(line.rstrip())
+                c+=1
+                
+            if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
+                log.info("Created: " + outPath)
                 os.chmod(outPath, 0644)
                 return True
             else:
-                logging.warn("Failed to create: " + outPath)
+                if os.path.exists(outPath): os.remove(outPath)
+                log.error("Failed to create: " + outPath)
                 return False
-
+                
         
 if __name__ == "__main__":
+    
     dMaker = DerivativeMaker()
     dMaker.buildFileList()
     dMaker.makeDerivs()
+    for handler in  logging.getLogger("DerivativeMaker").handlers:
+        path = handler.baseFilename
+        if os.path.getsize(path) == 0:
+            os.remove(path)
+            os.sys.stdout.write("Removed empty log: " + path + "\n")
 
