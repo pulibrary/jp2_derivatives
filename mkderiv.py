@@ -109,6 +109,7 @@ class DerivativeMaker(object):
                     pass
                         
         def makeDerivs(self):
+            self.__files.sort()
             for tiffPath in self.__files:
                 
                 outTmpTiffPath = TMP_DIR + tiffPath[len(SOURCE_ROOT):]
