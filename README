@@ -1,15 +1,8 @@
 64 Bit ONLY!
 
 Dependencies:
- * Imagemagick should be installed and on your path
+ * Imagemagick (convert in particular and exiv2 should be installed. Configure 
+   the script so that the constants reference these apps by absolute path 
+   (output of `which`). 
  * 64 bit Kakadu is included in lib. Other OSs will need to swap in appropriate 
    libraries.
- 
-Starting KAKADU recipe:
-
-kdu_compress -i <in.tif> \
-    -o <out.jp2> \
-    -rate 1.71 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} \
-    -jp2_space sRGB \
-    -no_weights \
-    -quiet

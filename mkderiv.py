@@ -10,18 +10,20 @@ import os
 import logging
 import subprocess
 from datetime import datetime
-## Configuration - Set these ###################################################
-#
+################################################################################
+## Common options - Set these ##################################################
+###############################################################################
 # Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
 # DO NOT include a leading slash, e.g., "/pudl0001".
-PUDL_LOCATOR = "pudl0001"
+PUDL_LOCATORS = [""]
+#
+EXTRACT_LEVELS = False #TODO: not implemented
 #
 # True if we want to replace existing files, otherwise False
 OVERWRITE_EXISTING = False
-#
-# Location for temporary half-size TIFFs, required for setting color profile.
-TMP_DIR = "/tmp"
-#
+################################################################################
+## Less Common Options #########################################################
+###############################################################################
 # Location of source images. "pudlXXXX" directories should be directly inside.
 SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/test-images"
 #
@@ -29,19 +31,37 @@ SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/test-images"
 # created.  
 TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/out"
 #
+# Location for temporary half-size TIFFs, required for setting color profile.
+TMP_DIR = "/tmp"
+#
 # Recipes for Image Magick and Kakadu.
-IMAGEMAGICK_OPTS = "-colorspace sRGB -quality 100 -resize 50%"
-KDU_RECIPE = "\
--rate 1.71 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
+TWENTY_FOUR_BIT_IMAGEMAGICK_OPTS = " -resize 3600x3600 -quality 100 -profile \"" + os.getcwd() + "/lib/sRGB.icc\""
+TWENTY_FOUR_BIT_KDU_RECIPE = "\
+-rate 0.60 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
 -jp2_space sRGB \
 -no_weights \
 -quiet"
 
+EIGHT_BIT_IMAGEMAGICK_OPTS = "-colorspace Gray -quality 100 -resize 3600x3600"
+EIGHT_BIT_KDU_RECIPE = "\
+-rate 1.80 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
+-no_weights \
+-quiet"
+
+EXIV2_GET_BPS = "-Pt -g Exif.Image.BitsPerSample print"
+
+# Installations may need to adjust these
+EXIV2 = "/usr/bin/exiv2"
+CONVERT = "/usr/bin/convert"
+
 ################################################################################
-# Code. Leave this alone :).                                                   #
+# Code. Leave this alone :). ###################################################
+################################################################################
 
 LIB = os.getcwd() + "/lib"
 ENV = {"LD_LIBRARY_PATH":LIB, "PATH":LIB + ":$PATH"}
+TWENTY_FOUR_BITS = "8 8 8"
+EIGHT_BITS = "8"
 
 # Logging
 log = logging.getLogger("DerivativeMaker")
@@ -94,15 +114,19 @@ class DerivativeMaker(object):
             lastStop = oldPath.rfind(".")
             return oldPath[0:lastStop] + newExtenstion
         
-        def buildFileList(self, dir=None):
+        def buildFileList(self):
+            for l in PUDL_LOCATORS:
+                self._buildFileList(locator=l)
+        
+        def _buildFileList(self, locator=None, dir=None):
             if dir == None: 
-                dir = os.path.join(SOURCE_ROOT, PUDL_LOCATOR)
+                dir = os.path.join(SOURCE_ROOT, locator)
             
             for node in os.listdir(dir):
                 absPath = os.path.join(dir, node)
                 
                 if os.path.isdir(absPath) and DerivativeMaker._dirFilter(node):
-                     self.buildFileList(dir=absPath) #recursive call
+                     self._buildFileList(dir=absPath) #recursive call
                 elif os.path.isfile(absPath) and DerivativeMaker._tiffFilter(node):
                     self.__files.append(absPath)
                 else:
@@ -112,22 +136,24 @@ class DerivativeMaker(object):
             self.__files.sort()
             for tiffPath in self.__files:
                 
+                bps = DerivativeMaker._getBitsPerSample(tiffPath)
+                
                 outTmpTiffPath = TMP_DIR + tiffPath[len(SOURCE_ROOT):]
 
                 outJp2WrongExt = TARGET_ROOT + outTmpTiffPath[len(TMP_DIR):]
                 outJp2Path = DerivativeMaker._changeExtension(outJp2WrongExt, ".jp2")
 
                 if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
-                    tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath)
+                    tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath, bps)
                     if tiffSuccess:
-                        DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path)
-                        os.remove(outTmpTiffPath)
+                        DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path, bps)
+#                        os.remove(outTmpTiffPath)
                         log.debug("Removed temporary file: " + outTmpTiffPath)
                 else:
                     log.warn("File exists: " + outJp2Path)
 
         @staticmethod
-        def _makeTmpTiff(inPath, outPath):
+        def _makeTmpTiff(inPath, outPath, inBitsPerSample):
             '''
             Returns the path to the TIFF that was created.
             '''
@@ -135,7 +161,13 @@ class DerivativeMaker(object):
             newDirPath = os.path.dirname(outPath)
             if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
-            cmd = "convert " + inPath + " " + IMAGEMAGICK_OPTS + " " + outPath
+            cmd = CONVERT + " " + inPath  
+            if inBitsPerSample == TWENTY_FOUR_BITS:
+                cmd = cmd + " " + TWENTY_FOUR_BIT_IMAGEMAGICK_OPTS
+            else:
+                cmd = cmd + " " + EIGHT_BIT_IMAGEMAGICK_OPTS
+            cmd = cmd + " " + outPath
+            print cmd
             proc = subprocess.Popen(cmd, shell=True, \
                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             return_code = proc.wait()
@@ -147,7 +179,7 @@ class DerivativeMaker(object):
             for line in proc.stderr:
                 if c == 0: log.error(outPath) 
                 log.error(line.rstrip())
-                c+=1
+                c += 1
                                 
             if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
                 log.debug("Created temporary file: " + outPath)
@@ -158,7 +190,7 @@ class DerivativeMaker(object):
                 return False
 
         @staticmethod
-        def _makeJp2(inPath, outPath):
+        def _makeJp2(inPath, outPath, inBitsPerSample):
             '''
             Returns the path to the TIFF that was created.
             '''
@@ -166,7 +198,11 @@ class DerivativeMaker(object):
             newDirPath = os.path.dirname(outPath)
             if not os.path.exists(newDirPath): os.makedirs(newDirPath, 0755)
             
-            cmd = "kdu_compress -i " + inPath + " -o " + outPath + " " + KDU_RECIPE
+            cmd = "kdu_compress -i " + inPath + " -o " + outPath 
+            if inBitsPerSample == TWENTY_FOUR_BITS:
+                cmd = cmd + " " + TWENTY_FOUR_BIT_KDU_RECIPE
+            else:
+                cmd = cmd + " " + EIGHT_BIT_KDU_RECIPE
             
             proc = subprocess.Popen(cmd, shell=True, env=ENV, \
                     stderr=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -180,7 +216,7 @@ class DerivativeMaker(object):
             for line in proc.stderr:
                 if c == 0: log.error(outPath) 
                 log.error(line.rstrip())
-                c+=1
+                c += 1
                 
             if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
                 log.info("Created: " + outPath)
@@ -190,7 +226,27 @@ class DerivativeMaker(object):
                 if os.path.exists(outPath): os.remove(outPath)
                 log.error("Failed to create: " + outPath)
                 return False
+            
+        @staticmethod
+        def _getBitsPerSample(inPath):
+            cmd = EXIV2 + " " + EXIV2_GET_BPS + " " + inPath
+            
+            proc = subprocess.Popen(cmd, shell=True, env=ENV, \
+                    stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            return_code = proc.wait()
+            
+            # Read from pipes
+            response = None
+            for line in proc.stdout:
+                if response == None:
+                    response = line.rstrip()
+            c = 0
+            for line in proc.stderr:
+                if c == 0: log.error(inPath) 
+                log.error(line.rstrip())
+                c += 1
                 
+            return response
         
 if __name__ == "__main__":
     
