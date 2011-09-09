@@ -15,7 +15,36 @@ from datetime import datetime
 ###############################################################################
 # Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
 # DO NOT include a leading slash, e.g., "/pudl0001".
-PUDL_LOCATORS = [""]
+PUDL_LOCATORS = [
+    "pudl0001",
+    "pudl0004",
+    "pudl0006",
+    "pudl0007",
+    "pudl0008",
+    "pudl0009",
+    "pudl0010",
+    "pudl0011",
+    "pudl0012",
+    "pudl0013",
+    "pudl0014",
+    "pudl0015",
+    "pudl0016",
+    "pudl0017",
+    "pudl0018",
+    "pudl0020",
+    "pudl0021",
+    "pudl0022",
+    "pudl0023",
+    "pudl0024",
+    "pudl0025",
+    "pudl0026",
+    "pudl0027",
+    "pudl0028",
+    "pudl0029",
+    "pudl0030",
+    "pudl0031",
+    "pudl0038"
+]
 #
 EXTRACT_LEVELS = False #TODO: not implemented
 #
@@ -25,11 +54,11 @@ OVERWRITE_EXISTING = False
 ## Less Common Options #########################################################
 ###############################################################################
 # Location of source images. "pudlXXXX" directories should be directly inside.
-SOURCE_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/test-images"
+SOURCE_ROOT = ""
 #
 # Location of target images. "pudlXXXX" directories and subdirectories will be
 # created.  
-TARGET_ROOT = "/home/jstroop/workspace/img-deriv-maker/test/out"
+TARGET_ROOT = ""
 #
 # Location for temporary half-size TIFFs, required for setting color profile.
 TMP_DIR = "/tmp"
@@ -147,7 +176,7 @@ class DerivativeMaker(object):
                     tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath, bps)
                     if tiffSuccess:
                         DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path, bps)
-#                        os.remove(outTmpTiffPath)
+                        os.remove(outTmpTiffPath)
                         log.debug("Removed temporary file: " + outTmpTiffPath)
                 else:
                     log.warn("File exists: " + outJp2Path)
