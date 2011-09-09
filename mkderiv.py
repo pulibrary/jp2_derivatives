@@ -54,11 +54,11 @@ OVERWRITE_EXISTING = False
 ## Less Common Options #########################################################
 ###############################################################################
 # Location of source images. "pudlXXXX" directories should be directly inside.
-SOURCE_ROOT = ""
+SOURCE_ROOT = "/mnt/libserv37/dps"
 #
 # Location of target images. "pudlXXXX" directories and subdirectories will be
 # created.  
-TARGET_ROOT = ""
+TARGET_ROOT = "/mnt/libserv64/vol2/pudl"
 #
 # Location for temporary half-size TIFFs, required for setting color profile.
 TMP_DIR = "/tmp"
@@ -196,7 +196,7 @@ class DerivativeMaker(object):
             else:
                 cmd = cmd + " " + EIGHT_BIT_IMAGEMAGICK_OPTS
             cmd = cmd + " " + outPath
-            print cmd
+
             proc = subprocess.Popen(cmd, shell=True, \
                 stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             return_code = proc.wait()
