@@ -193,8 +193,11 @@ class DerivativeMaker(object):
             cmd = CONVERT + " " + inPath  
             if inBitsPerSample == TWENTY_FOUR_BITS:
                 cmd = cmd + " " + TWENTY_FOUR_BIT_IMAGEMAGICK_OPTS
-            else:
+            elif inBitsPerSample == EIGHT_BITS:
                 cmd = cmd + " " + EIGHT_BIT_IMAGEMAGICK_OPTS
+            else:
+                log.error("Could not get bits per sample: " + outPath)
+                return False
             cmd = cmd + " " + outPath
 
             proc = subprocess.Popen(cmd, shell=True, \
@@ -230,8 +233,11 @@ class DerivativeMaker(object):
             cmd = "kdu_compress -i " + inPath + " -o " + outPath 
             if inBitsPerSample == TWENTY_FOUR_BITS:
                 cmd = cmd + " " + TWENTY_FOUR_BIT_KDU_RECIPE
-            else:
+            elif inBitsPerSample == EIGHT_BITS:
                 cmd = cmd + " " + EIGHT_BIT_KDU_RECIPE
+            else:
+                log.error("Could not get bits per sample: " + outPath)
+                return False
             
             proc = subprocess.Popen(cmd, shell=True, env=ENV, \
                     stderr=subprocess.PIPE, stdout=subprocess.PIPE)
