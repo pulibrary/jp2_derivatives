@@ -186,11 +186,8 @@ class DerivativeMaker(object):
             # Read from pipes
             for line in proc.stdout:
                 log.info(line.rstrip())
-            c = 0
             for line in proc.stderr:
-                if c == 0: log.error(outPath) 
-                log.error(line.rstrip())
-                c += 1
+                log.error(line.rstrip() + " (" + outPath + ")") 
                                 
             if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
                 log.debug("Created temporary file: " + outPath)
