@@ -16,34 +16,13 @@ from datetime import datetime
 # Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
 # DO NOT include a leading slash, e.g., "/pudl0001".
 PUDL_LOCATORS = [
-    "pudl0001",
-    "pudl0004",
-    "pudl0006",
-    "pudl0007",
-    "pudl0008",
-    "pudl0009",
-    "pudl0010",
-    "pudl0011",
-    "pudl0012",
-    "pudl0013",
-    "pudl0014",
-    "pudl0015",
-    "pudl0016",
-    "pudl0017",
-    "pudl0018",
-    "pudl0020",
-    "pudl0021",
-    "pudl0022",
-    "pudl0023",
-    "pudl0024",
-    "pudl0025",
-    "pudl0026",
-    "pudl0027",
-    "pudl0028",
-    "pudl0029",
-    "pudl0030",
-    "pudl0031",
-    "pudl0038"
+    "pudl0080",
+    "pudl0081",
+    "pudl0082",
+    "pudl0085",
+    "pudl0087",
+    "pudl0076",
+    "pudl0079"
 ]
 #
 EXTRACT_LEVELS = False #TODO: not implemented
@@ -247,11 +226,8 @@ class DerivativeMaker(object):
             for line in proc.stdout:
                 log.info(line.rstrip())
                 
-            c = 0
             for line in proc.stderr:
-                if c == 0: log.error(outPath) 
-                log.error(line.rstrip())
-                c += 1
+                log.error(line.rstrip() + " (" + outPath + ")") 
                 
             if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
                 log.info("Created: " + outPath)
@@ -275,11 +251,8 @@ class DerivativeMaker(object):
             for line in proc.stdout:
                 if response == None:
                     response = line.rstrip()
-            c = 0
             for line in proc.stderr:
-                if c == 0: log.error(inPath) 
-                log.error(line.rstrip())
-                c += 1
+                log.error(line.rstrip() + " (" + inPath + ")") 
                 
             return response
         
