@@ -16,13 +16,7 @@ from datetime import datetime
 # Generic location in the pudl file system - e.g., pudl0001 or pudl0001/4609321 
 # DO NOT include a leading slash, e.g., "/pudl0001".
 PUDL_LOCATORS = [
-    "pudl0080",
-    "pudl0081",
-    "pudl0082",
-    "pudl0085",
-    "pudl0087",
-    "pudl0076",
-    "pudl0079"
+    "pudl0094"
 ]
 #
 EXTRACT_LEVELS = False #TODO: not implemented
@@ -33,11 +27,11 @@ OVERWRITE_EXISTING = False
 ## Less Common Options #########################################################
 ###############################################################################
 # Location of source images. "pudlXXXX" directories should be directly inside.
-SOURCE_ROOT = "/mnt/libserv37/dps"
+SOURCE_ROOT = "/Volumes/DPSA_SanVol1/derivative_processing"
 #
 # Location of target images. "pudlXXXX" directories and subdirectories will be
 # created.  
-TARGET_ROOT = "/mnt/libserv64/vol2/pudl"
+TARGET_ROOT = "/Volumes/DPSA_SanVol1/derivative_processing/out"
 #
 # Location for temporary half-size TIFFs, required for setting color profile.
 TMP_DIR = "/tmp"
@@ -45,22 +39,26 @@ TMP_DIR = "/tmp"
 # Recipes for Image Magick and Kakadu.
 TWENTY_FOUR_BIT_IMAGEMAGICK_OPTS = " -resize 3600x3600 -quality 100 -profile \"" + os.getcwd() + "/lib/sRGB.icc\""
 TWENTY_FOUR_BIT_KDU_RECIPE = "\
--rate 0.60 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
+-rate 0.80 Clevels=5 Clayers=5 Cuse_precincts=yes Cprecincts=\{256,256\} Cblk=\{64,64\} Corder=RPCL ORGgen_plt=yes ORGtparts=R Stiles=\{256,256\} \
 -jp2_space sRGB \
+-double_buffering 10 \
+-num_threads 4 \
 -no_weights \
 -quiet"
 
 EIGHT_BIT_IMAGEMAGICK_OPTS = "-colorspace Gray -quality 100 -resize 3600x3600"
 EIGHT_BIT_KDU_RECIPE = "\
--rate 1.80 Clevels=5 Clayers=5 Stiles=\{256,256\} Cprecincts=\{256,256\} Corder=RPCL \
+-rate 0.80 Clevels=5 Clayers=5 Cuse_precincts=yes Cprecincts=\{256,256\} Cblk=\{64,64\} Corder=RPCL ORGgen_plt=yes ORGtparts=R Stiles=\{256,256\} \
+-double_buffering 10 \
+-num_threads 4 \
 -no_weights \
 -quiet"
 
 EXIV2_GET_BPS = "-Pt -g Exif.Image.BitsPerSample print"
 
 # Installations may need to adjust these
-EXIV2 = "/usr/bin/exiv2"
-CONVERT = "/usr/bin/convert"
+EXIV2 = "/opt/local/bin/exiv2"
+CONVERT = "/opt/local/bin/convert"
 
 ################################################################################
 # Code. Leave this alone :). ###################################################
@@ -157,6 +155,8 @@ class DerivativeMaker(object):
                         DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path, bps)
                         os.remove(outTmpTiffPath)
                         log.debug("Removed temporary file: " + outTmpTiffPath)
+                    else:
+                        os.remove(outTmpTiffPath)	 
                 else:
                     log.warn("File exists: " + outJp2Path)
 
