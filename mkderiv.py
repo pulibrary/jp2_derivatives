@@ -10,6 +10,7 @@ import os
 import logging
 import subprocess
 from datetime import datetime
+
 #######################################
 # Common options
 PUDL_LOCATORS = [
@@ -20,11 +21,10 @@ IMAGEMAGICK_SIZE_KEY = '3600' # "full" or "3600"
 SOURCE_ROOT = "/mnt/libserv64/vol4"
 TARGET_ROOT = "/home/systems/Desktop/derivs_out"
 OVERWRITE_EXISTING = False
-THREADS = '12'
+THREADS = '10'
 LOG_TO = 'console' # "console" or "file"
 
 #######################################
-
 # Installations. May need to adjust these
 EXIV2 = "/usr/bin/exiv2"
 CONVERT = "/usr/bin/convert"
