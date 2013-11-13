@@ -281,9 +281,10 @@ if __name__ == "__main__":
     dMaker = DerivativeMaker()
     dMaker.buildFileList()
     dMaker.makeDerivs()
-    for handler in  logging.getLogger("DerivativeMaker").handlers:
-        path = handler.baseFilename
-        if os.path.getsize(path) == 0:
-            os.remove(path)
-            os.sys.stdout.write("Removed empty log: " + path + "\n")
+    if LOG_TO == 'file':
+        for handler in  logging.getLogger("DerivativeMaker").handlers:
+            path = handler.baseFilename
+            if os.path.getsize(path) == 0:
+                os.remove(path)
+                os.sys.stdout.write("Removed empty log: " + path + "\n")
 
