@@ -14,14 +14,14 @@ from datetime import datetime
 #######################################
 # Common options
 PUDL_LOCATORS = [
-    "pudl0106",
+    "pudl0004","pudl0006","pudl0007","pudl0008","pudl0009","pudl0010","pudl0011","pudl0012"
 ]
-KDU_RECIPE_KEY = '20_1'
-IMAGEMAGICK_SIZE_KEY = '3600' # "full" or "3600"
-SOURCE_ROOT = "" # root dir of TIFFs. Must but an absolute (not relative) path
-TARGET_ROOT = "" # put jp2s here. See above
+KDU_RECIPE_KEY = '10_1'
+IMAGEMAGICK_SIZE_KEY = 'full' # "full" or "3600"
+SOURCE_ROOT = ""
+TARGET_ROOT = ""
 OVERWRITE_EXISTING = False
-THREADS = '10'
+THREADS = '12'
 LOG_TO = 'console' # "console" or "file"
 
 #######################################
@@ -162,6 +162,7 @@ class DerivativeMaker(object):
                     
     def makeDerivs(self):
         self.__files.sort()
+        n=1
         for tiffPath in self.__files:
             
             bps = DerivativeMaker._getBitsPerSample(tiffPath)
@@ -174,11 +175,12 @@ class DerivativeMaker(object):
             if not os.path.exists(outJp2Path) or OVERWRITE_EXISTING == True: 
                 tiffSuccess = DerivativeMaker._makeTmpTiff(tiffPath, outTmpTiffPath, bps)
                 if tiffSuccess:
-                    DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path, bps)
+                    DerivativeMaker._makeJp2(outTmpTiffPath, outJp2Path, bps, n)
                     os.remove(outTmpTiffPath)
                     log.debug("Removed temporary file: " + outTmpTiffPath)
+                    n+=1
                 else:
-                    os.remove(outTmpTiffPath)	 
+                    os.remove(outTmpTiffPath)    
             else:
                 log.warn("File exists: " + outJp2Path)
 
@@ -221,7 +223,7 @@ class DerivativeMaker(object):
             return False
 
     @staticmethod
-    def _makeJp2(inPath, outPath, inBitsPerSample):
+    def _makeJp2(inPath, outPath, inBitsPerSample, log_num=None):
         '''
         Returns the path to the TIFF that was created.
         '''
@@ -250,7 +252,10 @@ class DerivativeMaker(object):
             log.error(line.rstrip() + " (" + outPath + ")") 
             
         if os.path.exists(outPath) and os.path.getsize(outPath) != 0:
-            log.info("Created: " + outPath)
+            if log_num:
+                log.info("Created: (%d) %s" % (log_num, outPath))
+            else:
+                log.info("Created: " + outPath)
             os.chmod(outPath, 0644)
             return True
         else:
