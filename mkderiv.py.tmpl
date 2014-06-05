@@ -16,7 +16,7 @@ from datetime import datetime
 PUDL_LOCATORS = [
     "pudl0004","pudl0006","pudl0007","pudl0008","pudl0009","pudl0010","pudl0011","pudl0012"
 ]
-KDU_RECIPE_KEY = '10_1_color' # '10_1_color','10_1_gray','20_1_color','20_1_gray','lossless_1_color','lossless_1_gray'
+KDU_RECIPE_KEY = '10_1' # '10_1','20_1','lossless'
 IMAGEMAGICK_SIZE_KEY = 'full' # "full" or "3600"
 SOURCE_ROOT = ""
 TARGET_ROOT = ""
@@ -112,7 +112,6 @@ KDU_RECIPES = {
 
 }
 
-KDU_RECIPE = KDU_RECIPES[KDU_RECIPE_KEY]
 EXIV2_GET_BPS = "-Pt -g Exif.Image.BitsPerSample print"
 
 ################################################################################
@@ -271,9 +270,9 @@ class DerivativeMaker(object):
         
         cmd = "kdu_compress -i " + inPath + " -o " + outPath 
         if inBitsPerSample == TWENTY_FOUR_BITS:
-            cmd = cmd + " " + KDU_RECIPE
+            cmd = cmd + " " + KDU_RECIPES[KDU_RECIPE_KEY+'_color']
         elif inBitsPerSample == EIGHT_BITS:
-            cmd = cmd + " " + KDU_RECIPE
+            cmd = cmd + " " + KDU_RECIPES[KDU_RECIPE_KEY+'_gray']
         else:
             log.error("Could not get bits per sample: " + outPath)
             return False
